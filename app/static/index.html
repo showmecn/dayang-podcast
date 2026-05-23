@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大洋播客 — AI 播客推荐</title>
+<meta name="description" content="AI 驱动的播客推荐引擎 — 搜索你感兴趣的话题，发现值得听的播客">
+<style>
+/* ========== Reset & Base ========== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Helvetica Neue',sans-serif;
+  background:#f8fafc;color:#0f172a;line-height:1.6;
+  min-height:100vh;display:flex;flex-direction:column;
+}
+a{color:#2563eb;text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible{outline:2px solid #2563eb;outline-offset:2px;border-radius:2px}
+/* ========== Layout ========== */
+.container{max-width:680px;margin:0 auto;padding:0 16px;width:100%}
+/* ========== Header ========== */
+header{
+  padding:24px 0 8px;border-bottom:1px solid #e2e8f0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.brand{font-size:20px;font-weight:600;letter-spacing:-0.3px;color:#0f172a}
+.brand span{color:#2563eb}
+/* ========== Hero / Search ========== */
+.hero{padding:48px 0 32px;text-align:center}
+.hero h1{font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px;line-height:1.3}
+.hero p{color:#475569;font-size:15px;max-width:480px;margin:0 auto}
+.search-form{margin-top:24px;display:flex;gap:8px;max-width:520px;margin-left:auto;margin-right:auto}
+.search-form label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.search-input{
+  flex:1;padding:12px 16px;font-size:16px;border:1.5px solid #cbd5e1;border-radius:10px;
+  background:#fff;color:#0f172a;outline:none;transition:border-color .2s,box-shadow .2s;
+  font-family:inherit;
+}
+.search-input::placeholder{color:#94a3b8}
+.search-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.search-btn{
+  padding:12px 24px;font-size:15px;font-weight:600;border:none;border-radius:10px;
+  background:#2563eb;color:#fff;cursor:pointer;
+  transition:background .15s,transform .1s;
+  font-family:inherit;white-space:nowrap;
+}
+.search-btn:hover{background:#1d4ed8}
+.search-btn:active{transform:scale(.97)}
+.search-btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+.search-btn:disabled{background:#94a3b8;cursor:not-allowed}
+/* ========== Results area ========== */
+.results{flex:1;padding-bottom:48px}
+.results[aria-busy="true"]{display:flex;justify-content:center;min-height:200px}
+/* ========== Loading ========== */
+.spinner{display:flex;flex-direction:column;align-items:center;gap:16px;padding:64px 0}
+.spinner-ring{width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-text{color:#64748b;font-size:14px}
+/* ========== Empty / Error ========== */
+.empty-state,.error-state{text-align:center;padding:64px 16px}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:.6}
+.empty-state h2,.error-state h2{font-size:20px;font-weight:600;margin-bottom:8px;color:#0f172a}
+.empty-state p,.error-state p{color:#64748b;font-size:14px;max-width:360px;margin:0 auto}
+.error-state .error-detail{color:#dc2626;font-size:13px;margin-top:8px;word-break:break-word}
+.retry-btn{
+  margin-top:16px;padding:10px 20px;font-size:14px;font-weight:600;
+  border:1.5px solid #2563eb;border-radius:8px;background:#fff;color:#2563eb;
+  cursor:pointer;font-family:inherit;transition:background .15s;
+}
+.retry-btn:hover{background:#eff6ff}
+.retry-btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+/* ========== Card ========== */
+.cards{display:flex;flex-direction:column;gap:16px}
+.card{
+  background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;
+  transition:box-shadow .2s;position:relative;
+}
+.card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.card-title{font-size:17px;font-weight:600;line-height:1.4;color:#0f172a;flex:1}
+.card-badge{
+  font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;
+  background:#f0fdf4;color:#059669;white-space:nowrap;flex-shrink:0;margin-top:2px;
+  letter-spacing:0.2px;
+}
+.card-meta{font-size:13px;color:#64748b;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.card-meta .show-name{color:#475569;font-weight:500}
+.card-meta .sep{color:#cbd5e1}
+.card-summary{font-size:14px;color:#334155;line-height:1.6;margin-bottom:10px}
+.card-reason{font-size:13px;color:#64748b;font-style:italic;padding:8px 12px;background:#f8fafc;border-radius:8px;margin-bottom:10px;line-height:1.5}
+.card-reason strong{font-style:normal;color:#475569}
+/* ========== Timestamps accordion ========== */
+.timestamps-toggle{
+  display:inline-flex;align-items:center;gap:4px;font-size:13px;color:#64748b;
+  background:none;border:none;cursor:pointer;padding:4px 0;font-family:inherit;
+  transition:color .15s;
+}
+.timestamps-toggle:hover{color:#2563eb}
+.timestamps-toggle:focus-visible{outline:2px solid #2563eb;outline-offset:2px;border-radius:4px}
+.timestamps-toggle .arrow{transition:transform .2s;font-size:11px}
+.timestamps-toggle[aria-expanded="true"] .arrow{transform:rotate(90deg)}
+.timestamps-list{
+  display:none;margin-top:8px;padding:0;list-style:none;
+  border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;
+}
+.timestamps-list.open{display:block}
+.timestamps-list li{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:13px;color:#334155;
+  border-bottom:1px solid #f1f5f9;
+}
+.timestamps-list li:last-child{border-bottom:none}
+.ts-time{font-family:'SF Mono',Monaco,Consolas,'Liberation Mono',monospace;font-size:12px;color:#2563eb;font-weight:500;white-space:nowrap;min-width:48px}
+.ts-label{color:#475569}
+/* ========== Audio player ========== */
+.card-audio{
+  margin-top:12px;width:100%;
+}
+.card-audio audio{
+  display:block;width:100%;height:44px;border-radius:8px;
+  background:#f1f5f9;box-shadow:inset 0 1px 2px rgba(0,0,0,.04);
+}
+.card-audio audio:focus-visible{
+  outline:2px solid #2563eb;outline-offset:2px;border-radius:8px;
+}
+/* ========== Card actions row ========== */
+.card-actions{
+  margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.listen-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;font-size:13px;font-weight:600;border:none;border-radius:8px;
+  background:#f1f5f9;color:#0f172a;cursor:pointer;font-family:inherit;
+  transition:background .15s,color .15s;
+}
+.listen-btn:hover{background:#2563eb;color:#fff;text-decoration:none}
+.listen-btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+/* ========== Footer ========== */
+footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:auto}
+/* ========== Utility ========== */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+/* ========== Processing time ========== */
+.processing-info{text-align:center;font-size:12px;color:#94a3b8;margin-top:12px}
+/* ========== Motion reduce ========== */
+@media (prefers-reduced-motion:reduce){
+  .spinner-ring{animation-duration:1.5s}
+  .card,.search-input,.search-btn,.listen-btn,.card-audio audio{transition:none}
+}
+/* ========== Dark mode ========== */
+@media (prefers-color-scheme:dark){
+  body{background:#0f172a;color:#f1f5f9}
+  .brand{color:#f1f5f9}
+  .hero h1{color:#f1f5f9}
+  .hero p{color:#94a3b8}
+  .search-input{background:#1e293b;border-color:#334155;color:#f1f5f9}
+  .search-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+  .card{background:#1e293b;border-color:#334155}
+  .card:hover{box-shadow:0 2px 12px rgba(0,0,0,.3)}
+  .card-title{color:#f1f5f9}
+  .card-meta{color:#94a3b8}
+  .card-meta .show-name{color:#cbd5e1}
+  .card-summary{color:#cbd5e1}
+  .card-reason{background:#0f172a;color:#94a3b8}
+  .card-reason strong{color:#cbd5e1}
+  .timestamps-list{border-color:#334155}
+  .timestamps-list li{color:#cbd5e1;border-bottom-color:#1e293b}
+  .ts-time{color:#60a5fa}
+  .ts-label{color:#94a3b8}
+  .card-audio audio{background:#334155}
+  .listen-btn{background:#334155;color:#f1f5f9}
+  .listen-btn:hover{background:#2563eb;color:#fff}
+  .card-badge{background:#064e3b;color:#6ee7b7}
+  .empty-state h2,.error-state h2{color:#f1f5f9}
+  .empty-state p,.error-state p{color:#94a3b8}
+  .retry-btn{border-color:#3b82f6;color:#60a5fa;background:transparent}
+  .retry-btn:hover{background:#1e293b}
+  .processing-info{color:#64748b}
+  header{border-color:#1e293b}
+  footer{border-color:#1e293b;color:#475569}
+  .search-btn{background:#3b82f6}
+  .search-btn:hover{background:#2563eb}
+}
+/* ========== Responsive ========== */
+@media (max-width:480px){
+  .hero h1{font-size:22px}
+  .hero{padding:32px 0 24px}
+  .search-form{flex-direction:column;gap:8px}
+  .search-btn{padding:12px 16px}
+  .card{padding:16px}
+  .card-header{flex-direction:column;gap:4px}
+  .card-badge{align-self:flex-start}
+  .card-actions{flex-direction:column;align-items:stretch}
+  .card-actions .listen-btn{justify-content:center}
+  header{padding:16px 0 8px}
+}
+</style>
+</head>
+<body>
+
+<a href="#results" class="sr-only" style="position:absolute;left:16px;top:8px;background:#2563eb;color:#fff;padding:8px 16px;border-radius:8px;z-index:999;clip:auto;width:auto;height:auto">跳转到搜索结果</a>
+
+<header>
+  <div class="container" style="display:flex;align-items:center;justify-content:space-between">
+    <div class="brand">大洋<span>播客</span></div>
+    <span style="font-size:12px;color:#94a3b8">AI 推荐引擎</span>
+  </div>
+</header>
+
+<main>
+  <!-- Hero / Search Section -->
+  <section class="hero" aria-label="搜索播客">
+    <div class="container">
+      <h1>发现值得听的播客</h1>
+      <p>输入你感兴趣的话题，AI 从海量播客中精准推荐</p>
+      <form class="search-form" role="search" aria-label="播客话题搜索" id="searchForm">
+        <label for="topicInput">搜索话题</label>
+        <input
+          type="text"
+          id="topicInput"
+          class="search-input"
+          placeholder="例如：AI 监管、量化交易、公司法..."
+          autocomplete="off"
+          aria-describedby="searchHint"
+        >
+        <button type="submit" class="search-btn" id="searchBtn">搜索</button>
+      </form>
+      <p id="searchHint" class="sr-only">输入话题后按回车或点击搜索按钮，AI 将为你推荐相关播客</p>
+    </div>
+  </section>
+
+  <!-- Results Section -->
+  <section class="results" id="results" aria-label="推荐结果" aria-live="polite" aria-atomic="true">
+    <div class="container">
+      <!-- Default: Empty state -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🔍</div>
+        <h2>搜索播客话题</h2>
+        <p>输入你感兴趣的话题，AI 将从海量播客中精准推荐最值得听的 3 集</p>
+      </div>
+
+      <!-- Loading state (hidden by default) -->
+      <div class="spinner" id="loadingState" hidden>
+        <div class="spinner-ring" role="status" aria-label="正在搜索推荐"></div>
+        <span class="spinner-text">正在搜索推荐…</span>
+      </div>
+
+      <!-- Error state (hidden by default) -->
+      <div class="error-state" id="errorState" hidden>
+        <div class="empty-icon">⚠️</div>
+        <h2>搜索失败</h2>
+        <p id="errorMessage">请稍后重试</p>
+        <button class="retry-btn" id="retryBtn">重新搜索</button>
+      </div>
+
+      <!-- Cards container (hidden by default) -->
+      <div id="cardsContainer" hidden aria-label="推荐播客列表">
+        <div class="cards" id="cardsList" role="list"></div>
+        <div class="processing-info" id="processingInfo"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">大洋播客 · AI 播客推荐引擎</div>
+</footer>
+
+<script>
+(function() {
+  'use strict';
+
+  const DOM = {
+    form: document.getElementById('searchForm'),
+    input: document.getElementById('topicInput'),
+    btn: document.getElementById('searchBtn'),
+    emptyState: document.getElementById('emptyState'),
+    loadingState: document.getElementById('loadingState'),
+    errorState: document.getElementById('errorState'),
+    errorMessage: document.getElementById('errorMessage'),
+    retryBtn: document.getElementById('retryBtn'),
+    cardsContainer: document.getElementById('cardsContainer'),
+    cardsList: document.getElementById('cardsList'),
+    processingInfo: document.getElementById('processingInfo'),
+    results: document.getElementById('results'),
+  };
+
+  let lastTopic = '';
+  let abortController = null;
+
+  /* ---- State management ---- */
+  function setLoading(loading) {
+    DOM.btn.disabled = loading;
+    DOM.input.disabled = loading;
+    DOM.emptyState.hidden = true;
+    DOM.errorState.hidden = true;
+    DOM.cardsContainer.hidden = true;
+    DOM.loadingState.hidden = !loading;
+    DOM.results.setAttribute('aria-busy', loading ? 'true' : 'false');
+  }
+
+  function showError(message) {
+    DOM.emptyState.hidden = true;
+    DOM.loadingState.hidden = true;
+    DOM.cardsContainer.hidden = true;
+    DOM.errorState.hidden = false;
+    DOM.errorMessage.textContent = message || '搜索失败，请稍后重试';
+    DOM.results.setAttribute('aria-busy', 'false');
+    DOM.btn.disabled = false;
+    DOM.input.disabled = false;
+  }
+
+  function showCards(recommendations, processingTime) {
+    DOM.emptyState.hidden = true;
+    DOM.loadingState.hidden = true;
+    DOM.errorState.hidden = true;
+    DOM.cardsContainer.hidden = false;
+    DOM.results.setAttribute('aria-busy', 'false');
+
+    /* Render cards */
+    DOM.cardsList.innerHTML = '';
+    DOM.cardsList.setAttribute('role', 'list');
+
+    recommendations.forEach(function(rec, idx) {
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.setAttribute('role', 'listitem');
+      card.setAttribute('aria-posinset', idx + 1);
+      card.setAttribute('aria-setsize', recommendations.length);
+
+      /* Score badge */
+      var scoreLabel = '';
+      if (rec.relevance_score != null) {
+        var pct = Math.round(rec.relevance_score);
+        scoreLabel = '匹配 ' + pct + '%';
+      }
+
+      /* Duration formatting */
+      var durationStr = '';
+      if (rec.duration_sec != null && rec.duration_sec > 0) {
+        var mins = Math.floor(rec.duration_sec / 60);
+        if (mins >= 60) {
+          var h = Math.floor(mins / 60);
+          var m = mins % 60;
+          durationStr = h + '小时' + (m > 0 ? m + '分钟' : '');
+        } else {
+          durationStr = mins + '分钟';
+        }
+      }
+
+      /* Date formatting */
+      var dateStr = rec.published_at || '';
+      if (dateStr) {
+        try {
+          var d = new Date(dateStr);
+          if (!isNaN(d.getTime())) {
+            dateStr = d.toLocaleDateString('zh-CN', {year:'numeric',month:'short',day:'numeric'});
+          }
+        } catch(e) {}
+      }
+
+      /* Timestamps */
+      var hasTimestamps = rec.timestamps && rec.timestamps.length > 0;
+
+      /* Build card HTML */
+      var html = '';
+
+      /* Header: title + badge */
+      html += '<div class="card-header">';
+      html += '  <div class="card-title">' + escapeHtml(rec.episode_title || '未命名播客') + '</div>';
+      if (scoreLabel) {
+        html += '  <span class="card-badge">' + scoreLabel + '</span>';
+      }
+      html += '</div>';
+
+      /* Meta: show name + date + duration */
+      html += '<div class="card-meta">';
+      if (rec.show_title) {
+        html += '  <span class="show-name">' + escapeHtml(rec.show_title) + '</span>';
+        if (dateStr || durationStr) {
+          html += '  <span class="sep">·</span>';
+        }
+      }
+      if (dateStr) {
+        html += '  <span>' + dateStr + '</span>';
+        if (durationStr) {
+          html += '  <span class="sep">·</span>';
+        }
+      }
+      if (durationStr) {
+        html += '  <span>' + durationStr + '</span>';
+      }
+      html += '</div>';
+
+      /* Summary */
+      if (rec.summary) {
+        html += '<div class="card-summary">' + escapeHtml(rec.summary) + '</div>';
+      }
+
+      /* Reason */
+      if (rec.reason) {
+        html += '<div class="card-reason"><strong>推荐理由</strong> · ' + escapeHtml(rec.reason) + '</div>';
+      }
+
+      /* Timestamps collapsible */
+      if (hasTimestamps) {
+        var tsId = 'ts-' + idx;
+        html += '<div class="timestamps-section">';
+        html += '  <button class="timestamps-toggle" aria-expanded="false" aria-controls="' + tsId + '" data-ts-target="' + tsId + '">';
+        html += '    <span class="arrow">▶</span> 关键时间戳 (' + rec.timestamps.length + ')';
+        html += '  </button>';
+        html += '  <ul class="timestamps-list" id="' + tsId + '" role="list">';
+        rec.timestamps.forEach(function(ts) {
+          html += '    <li>';
+          html += '      <span class="ts-time">' + escapeHtml(ts.time_str || '') + '</span>';
+          html += '      <span class="ts-label">' + escapeHtml(ts.label || '') + '</span>';
+          html += '    </li>';
+        });
+        html += '  </ul>';
+        html += '</div>';
+      }
+
+      /* Audio player — embedded, preload=none, no autoplay */
+      if (rec.audio_url) {
+        html += '<div class="card-audio">';
+        html += '  <audio controls preload="none" aria-label="播客音频播放器 - ' + escapeAttr(rec.episode_title || '') + '">';
+        html += '    <source src="' + escapeAttr(rec.audio_url) + '" type="audio/mpeg">';
+        html += '    您的浏览器不支持音频播放';
+        html += '  </audio>';
+        html += '</div>';
+      }
+
+      /* Card actions row: external link button */
+      html += '<div class="card-actions">';
+      if (rec.episode_url) {
+        html += '<a class="listen-btn" href="' + escapeAttr(rec.episode_url) + '" target="_blank" rel="noopener noreferrer">';
+        html += '  🎧 收听原播客';
+        html += '</a>';
+      }
+      html += '</div>';
+
+      card.innerHTML = html;
+
+      /* Attach timestamp toggle events */
+      if (hasTimestamps) {
+        var toggleBtn = card.querySelector('.timestamps-toggle');
+        var tsList = card.querySelector('.timestamps-list');
+        if (toggleBtn && tsList) {
+          toggleBtn.addEventListener('click', function() {
+            var expanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+            toggleBtn.setAttribute('aria-expanded', !expanded);
+            tsList.classList.toggle('open');
+          });
+        }
+      }
+
+      DOM.cardsList.appendChild(card);
+    });
+
+    /* Processing time */
+    if (processingTime != null) {
+      var ms = processingTime;
+      var timeStr = ms >= 1000 ? (ms / 1000).toFixed(1) + '秒' : ms + '毫秒';
+      DOM.processingInfo.textContent = '搜索完成 · 耗时 ' + timeStr;
+      DOM.processingInfo.hidden = false;
+    } else {
+      DOM.processingInfo.hidden = true;
+    }
+  }
+
+  /* ---- API call ---- */
+  function search(topic) {
+    /* Cancel any in-flight request */
+    if (abortController) {
+      abortController.abort();
+    }
+    abortController = new AbortController();
+
+    setLoading(true);
+    lastTopic = topic;
+
+    fetch('https://api.myagent.ccwu.cc/api/recommend', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({topic: topic, top_k: 3}),
+      signal: abortController.signal,
+    })
+    .then(function(response) {
+      if (!response.ok) {
+        return response.json().then(function(err) {
+          throw new Error(err.detail || '服务器错误 (' + response.status + ')');
+        }).catch(function(e) {
+          if (e instanceof SyntaxError) {
+            throw new Error('服务器错误 (' + response.status + ')');
+          }
+          throw e;
+        });
+      }
+      return response.json();
+    })
+    .then(function(data) {
+      abortController = null;
+      var recs = data.recommendations || [];
+      var pt = data.processing_time_ms;
+
+      if (recs.length === 0) {
+        /* Empty result after search */
+        DOM.emptyState.hidden = false;
+        DOM.loadingState.hidden = true;
+        DOM.errorState.hidden = true;
+        DOM.cardsContainer.hidden = true;
+        DOM.results.setAttribute('aria-busy', 'false');
+        DOM.btn.disabled = false;
+        DOM.input.disabled = false;
+
+        /* Update empty state message */
+        var emptyEl = DOM.emptyState.querySelector('h2');
+        var emptyP = DOM.emptyState.querySelector('p');
+        emptyEl.textContent = '未找到相关播客';
+        emptyP.innerHTML = '关于「' + escapeHtml(topic) + '」暂时没有足够匹配的推荐。<br>试试换个关键词？';
+        return;
+      }
+
+      showCards(recs, pt);
+    })
+    .catch(function(err) {
+      abortController = null;
+      if (err.name === 'AbortError') {
+        /* Silently ignore aborted requests */
+        return;
+      }
+      showError(err.message || '网络错误，请检查连接后重试');
+    });
+  }
+
+  /* ---- Event handlers ---- */
+  DOM.form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var topic = DOM.input.value.trim();
+    if (!topic) {
+      DOM.input.focus();
+      return;
+    }
+    search(topic);
+  });
+
+  DOM.retryBtn.addEventListener('click', function() {
+    if (lastTopic) {
+      search(lastTopic);
+    } else {
+      DOM.input.focus();
+    }
+  });
+
+  /* ---- Utility ---- */
+  function escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  function escapeAttr(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/&/g,'&amp;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  /* Input: Enter to submit */
+  DOM.input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      DOM.form.dispatchEvent(new Event('submit'));
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

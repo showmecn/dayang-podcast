@@ -40,3 +40,11 @@ pgdata/
 
 # Temporary debug scripts
 debug_*.py
+
+# Frontend
+node_modules/
+app/static/*.br
+app/static/*.gz
+
+# Vercel
+.vercel
