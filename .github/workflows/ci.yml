@@ -58,4 +58,4 @@ jobs:
           PODCAST_INDEX_API_SECRET: test-secret
           CI: true
         run: |
-          pytest -v --cov=app --cov-report=term
+          pytest -v --cov=app --cov-report=term --timeout=60
