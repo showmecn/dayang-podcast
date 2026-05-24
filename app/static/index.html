@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>大洋播客 — AI 播客推荐</title>
-<meta name="description" content="AI 驱动的播客推荐引擎 — 搜索你感兴趣的话题，发现值得听的播客">
+<title>大洋播客 — 发现好播客</title>
+<meta name="description" content="最新播客推荐 + 随机发现 — 发现值得听的播客节目">
 <style>
 /* ========== Reset & Base ========== */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -26,37 +26,9 @@ header{
 }
 .brand{font-size:20px;font-weight:600;letter-spacing:-0.3px;color:#0f172a}
 .brand span{color:#2563eb}
-/* ========== Hero / Search ========== */
-.hero{padding:48px 0 32px;text-align:center}
-.hero h1{font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px;line-height:1.3}
-.hero p{color:#475569;font-size:15px;max-width:480px;margin:0 auto}
-.search-form{margin-top:24px;display:flex;gap:8px;max-width:520px;margin-left:auto;margin-right:auto}
-.search-form label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-.search-input{
-  flex:1;padding:12px 16px;font-size:16px;border:1.5px solid #cbd5e1;border-radius:10px;
-  background:#fff;color:#0f172a;outline:none;transition:border-color .2s,box-shadow .2s;
-  font-family:inherit;
-}
-.search-input::placeholder{color:#94a3b8}
-.search-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-.search-btn{
-  padding:12px 24px;font-size:15px;font-weight:600;border:none;border-radius:10px;
-  background:#2563eb;color:#fff;cursor:pointer;
-  transition:background .15s,transform .1s;
-  font-family:inherit;white-space:nowrap;
-}
-.search-btn:hover{background:#1d4ed8}
-.search-btn:active{transform:scale(.97)}
-.search-btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
-.search-btn:disabled{background:#94a3b8;cursor:not-allowed}
+.header-tag{font-size:12px;color:#94a3b8}
 /* ========== Results area ========== */
-.results{flex:1;padding-bottom:48px}
-.results[aria-busy="true"]{display:flex;justify-content:center;min-height:200px}
-/* ========== Loading ========== */
-.spinner{display:flex;flex-direction:column;align-items:center;gap:16px;padding:64px 0}
-.spinner-ring{width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.spinner-text{color:#64748b;font-size:14px}
+.results{flex:1;padding-top:32px;padding-bottom:48px}
 /* ========== Empty / Error ========== */
 .empty-state,.error-state{text-align:center;padding:64px 16px}
 .empty-icon{font-size:48px;margin-bottom:16px;opacity:.6}
@@ -132,6 +104,25 @@ header{
 }
 .listen-btn:hover{background:#2563eb;color:#fff;text-decoration:none}
 .listen-btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+/* ========== Random browse button — now above latest section ========== */
+.random-section{
+  text-align:center;margin:0 0 24px;
+  padding:8px 0 0;
+}
+.random-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 40px;font-size:17px;font-weight:600;border:none;border-radius:12px;
+  background:#2563eb;color:#fff;cursor:pointer;font-family:inherit;
+  transition:background .15s,transform .1s,opacity .15s;min-width:200px;
+}
+.random-btn:hover{background:#1d4ed8}
+.random-btn:active{transform:scale(.97)}
+.random-btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+.random-btn:disabled{background:#94a3b8;cursor:not-allowed;opacity:.7}
+/* ========== Random results ========== */
+#randomResults{margin-top:8px}
+/* ========== Section divider ========== */
+.section-divider{border:none;border-top:1px solid #e2e8f0;margin:0 0 20px}
 /* ========== Footer ========== */
 footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:auto}
 /* ========== Utility ========== */
@@ -139,26 +130,15 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
 /* ========== Processing time ========== */
 .processing-info{text-align:center;font-size:12px;color:#94a3b8;margin-top:12px}
 /* ========== Latest heading ========== */
-#latestHeading h2 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 16px;
-}
-
+#latestHeading h2{font-size:18px;font-weight:600;color:#0f172a;margin-bottom:16px}
 /* ========== Motion reduce ========== */
 @media (prefers-reduced-motion:reduce){
-  .spinner-ring{animation-duration:1.5s}
-  .card,.search-input,.search-btn,.listen-btn,.card-audio audio{transition:none}
+  .card,.listen-btn,.card-audio audio,.random-btn,.retry-btn{transition:none}
 }
 /* ========== Dark mode ========== */
 @media (prefers-color-scheme:dark){
   body{background:#0f172a;color:#f1f5f9}
   .brand{color:#f1f5f9}
-  .hero h1{color:#f1f5f9}
-  .hero p{color:#94a3b8}
-  .search-input{background:#1e293b;border-color:#334155;color:#f1f5f9}
-  .search-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
   .card{background:#1e293b;border-color:#334155}
   .card:hover{box-shadow:0 2px 12px rgba(0,0,0,.3)}
   .card-title{color:#f1f5f9}
@@ -182,108 +162,90 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
   .processing-info{color:#64748b}
   #latestHeading h2{color:#f1f5f9}
   header{border-color:#1e293b}
+  .header-tag{color:#475569}
   footer{border-color:#1e293b;color:#475569}
-  .search-btn{background:#3b82f6}
-  .search-btn:hover{background:#2563eb}
+  .random-btn{background:#3b82f6}
+  .random-btn:hover{background:#2563eb}
+  .random-btn:disabled{background:#475569}
+  .section-divider{border-top-color:#1e293b}
 }
 /* ========== Responsive ========== */
 @media (max-width:480px){
-  .hero h1{font-size:22px}
-  .hero{padding:32px 0 24px}
-  .search-form{flex-direction:column;gap:8px}
-  .search-btn{padding:12px 16px}
+  header{padding:16px 0 8px}
+  .results{padding-top:24px}
   .card{padding:16px}
   .card-header{flex-direction:column;gap:4px}
   .card-badge{align-self:flex-start}
-  header{padding:16px 0 8px}
+  .random-section{margin:0 0 16px;padding:4px 0 0}
+  .random-btn{padding:12px 32px;font-size:15px;min-width:160px}
 }
 </style>
 </head>
 <body>
 
-<a href="#results" class="sr-only" style="position:absolute;left:16px;top:8px;background:#2563eb;color:#fff;padding:8px 16px;border-radius:8px;z-index:999;clip:auto;width:auto;height:auto">跳转到搜索结果</a>
-
 <header>
   <div class="container" style="display:flex;align-items:center;justify-content:space-between">
     <div class="brand">大洋<span>播客</span></div>
-    <span style="font-size:12px;color:#94a3b8">AI 推荐引擎</span>
+    <span class="header-tag">发现好播客</span>
   </div>
 </header>
 
 <main>
-  <!-- Hero / Search Section -->
-  <section class="hero" aria-label="搜索播客">
-    <div class="container">
-      <h1>发现值得听的播客</h1>
-      <p>输入你感兴趣的话题，AI 从海量播客中精准推荐</p>
-      <form class="search-form" role="search" aria-label="播客话题搜索" id="searchForm">
-        <label for="topicInput">搜索话题</label>
-        <input
-          type="text"
-          id="topicInput"
-          class="search-input"
-          placeholder="例如：AI 监管、量化交易、公司法..."
-          autocomplete="off"
-          aria-describedby="searchHint"
-        >
-        <button type="submit" class="search-btn" id="searchBtn">搜索</button>
-      </form>
-      <p id="searchHint" class="sr-only">输入话题后按回车或点击搜索按钮，AI 将为你推荐相关播客</p>
-    </div>
-  </section>
-
   <!-- Results Section -->
-  <section class="results" id="results" aria-label="推荐结果" aria-live="polite" aria-atomic="true">
+  <section class="results" id="results" aria-label="播客推荐" aria-live="polite" aria-atomic="true">
     <div class="container">
-      <!-- Default: Empty state -->
+      <!-- Default: Empty state (shown on initial load, hidden after latest loads) -->
       <div class="empty-state" id="emptyState">
-        <div class="empty-icon">🔍</div>
-        <h2>搜索播客话题</h2>
-        <p>输入你感兴趣的话题，AI 将从海量播客中精准推荐最值得听的 3 集</p>
-      </div>
-
-      <!-- Loading state (hidden by default) -->
-      <div class="spinner" id="loadingState" hidden>
-        <div class="spinner-ring" role="status" aria-label="正在搜索推荐"></div>
-        <span class="spinner-text">正在搜索推荐…</span>
+        <div class="empty-icon">🎲</div>
+        <h2>欢迎来到大洋播客</h2>
+        <p>浏览最新播客，或点击「随便听听」发现随机好内容</p>
       </div>
 
       <!-- Error state (hidden by default) -->
       <div class="error-state" id="errorState" hidden>
         <div class="empty-icon">⚠️</div>
-        <h2>搜索失败</h2>
+        <h2>加载失败</h2>
         <p id="errorMessage">请稍后重试</p>
-        <button class="retry-btn" id="retryBtn">重新搜索</button>
+        <button class="retry-btn" id="retryBtn">重新加载</button>
       </div>
+
+      <!-- 🎲 Random browse button — always visible, positioned above latest -->
+      <div class="random-section" id="randomSection">
+        <button class="random-btn" id="randomBtn" type="button">🎲 随便听听</button>
+      </div>
+
+      <hr class="section-divider" id="sectionDivider" hidden aria-hidden="true">
 
       <!-- Latest episodes heading (hidden by default, shown after autoFetchLatest) -->
       <div id="latestHeading" hidden aria-label="最新播客">
         <h2>最新播客</h2>
       </div>
 
-      <!-- Cards container (hidden by default) -->
-      <div id="cardsContainer" hidden aria-label="推荐播客列表">
+      <!-- Latest cards container (hidden by default) -->
+      <div id="cardsContainer" hidden aria-label="最新播客列表">
         <div class="cards" id="cardsList" role="list"></div>
         <div class="processing-info" id="processingInfo"></div>
+      </div>
+
+      <!-- Random results (hidden by default) -->
+      <div id="randomResults" hidden aria-label="随机播客列表">
+        <div class="cards" id="randomCards" role="list"></div>
       </div>
     </div>
   </section>
 </main>
 
 <footer>
-  <div class="container">大洋播客 · AI 播客推荐引擎</div>
+  <div class="container">大洋播客 · 发现好播客</div>
 </footer>
 
 <script>
 (function() {
   'use strict';
 
-  const DOM = {
-    form: document.getElementById('searchForm'),
-    input: document.getElementById('topicInput'),
-    btn: document.getElementById('searchBtn'),
+  /* ---- DOM refs ---- */
+  var DOM = {
     emptyState: document.getElementById('emptyState'),
-    loadingState: document.getElementById('loadingState'),
     errorState: document.getElementById('errorState'),
     errorMessage: document.getElementById('errorMessage'),
     retryBtn: document.getElementById('retryBtn'),
@@ -292,55 +254,69 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     processingInfo: document.getElementById('processingInfo'),
     results: document.getElementById('results'),
     latestHeading: document.getElementById('latestHeading'),
+    sectionDivider: document.getElementById('sectionDivider'),
+    randomSection: document.getElementById('randomSection'),
+    randomBtn: document.getElementById('randomBtn'),
+    randomResults: document.getElementById('randomResults'),
+    randomCards: document.getElementById('randomCards'),
   };
 
-  let lastTopic = '';
-  let abortController = null;
-  let latestMode = true;
+  var abortController = null;
+  var latestWasLoaded = false;  // track whether latest data exists (for restore on random error)
 
   /* ---- State management ---- */
-  function setLoading(loading, text) {
-    DOM.btn.disabled = loading;
-    DOM.input.disabled = loading;
-    DOM.emptyState.hidden = true;
-    DOM.errorState.hidden = true;
-    DOM.cardsContainer.hidden = true;
-    DOM.latestHeading.hidden = true;
-    DOM.loadingState.hidden = !loading;
-    if (loading && text) {
-      DOM.loadingState.querySelector('.spinner-text').textContent = text;
-    }
-    DOM.results.setAttribute('aria-busy', loading ? 'true' : 'false');
-  }
 
   function showError(message) {
     DOM.emptyState.hidden = true;
-    DOM.loadingState.hidden = true;
     DOM.cardsContainer.hidden = true;
     DOM.latestHeading.hidden = true;
+    DOM.sectionDivider.hidden = true;
+    DOM.randomResults.hidden = true;
     DOM.errorState.hidden = false;
-    DOM.errorMessage.textContent = message || '搜索失败，请稍后重试';
-    DOM.results.setAttribute('aria-busy', 'false');
-    DOM.btn.disabled = false;
-    DOM.input.disabled = false;
+    DOM.errorMessage.textContent = message || '加载失败，请稍后重试';
+    DOM.randomBtn.disabled = false;
+    DOM.randomBtn.textContent = '🎲 随便听听';
   }
 
   function showEmptyState(title, desc) {
     DOM.emptyState.hidden = false;
-    DOM.loadingState.hidden = true;
     DOM.errorState.hidden = true;
     DOM.cardsContainer.hidden = true;
     DOM.latestHeading.hidden = true;
-    DOM.results.setAttribute('aria-busy', 'false');
-    DOM.btn.disabled = false;
-    DOM.input.disabled = false;
+    DOM.sectionDivider.hidden = true;
+    DOM.randomResults.hidden = true;
+    DOM.randomBtn.disabled = false;
     DOM.emptyState.querySelector('h2').textContent = title;
     DOM.emptyState.querySelector('p').textContent = desc;
   }
 
-  function renderCards(recs) {
-    DOM.cardsList.innerHTML = '';
-    DOM.cardsList.setAttribute('role', 'list');
+  function restoreLatestView() {
+    DOM.emptyState.hidden = true;
+    DOM.errorState.hidden = true;
+    DOM.randomResults.hidden = true;
+    DOM.latestHeading.hidden = false;
+    DOM.cardsContainer.hidden = false;
+    DOM.sectionDivider.hidden = false;
+    DOM.randomBtn.disabled = false;
+    DOM.randomBtn.textContent = '🎲 随便听听';
+    DOM.results.setAttribute('aria-busy', 'false');
+  }
+
+  function restoreEmptyView() {
+    DOM.emptyState.hidden = false;
+    DOM.errorState.hidden = true;
+    DOM.randomResults.hidden = true;
+    DOM.latestHeading.hidden = true;
+    DOM.cardsContainer.hidden = true;
+    DOM.sectionDivider.hidden = true;
+    DOM.randomBtn.disabled = false;
+    DOM.randomBtn.textContent = '🎲 随便听听';
+    DOM.results.setAttribute('aria-busy', 'false');
+  }
+
+  function renderCards(recs, targetList) {
+    targetList.innerHTML = '';
+    targetList.setAttribute('role', 'list');
 
     recs.forEach(function(rec, idx) {
       var card = document.createElement('div');
@@ -349,14 +325,12 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
       card.setAttribute('aria-posinset', idx + 1);
       card.setAttribute('aria-setsize', recs.length);
 
-      /* Score badge */
       var scoreLabel = '';
       if (rec.relevance_score != null) {
         var pct = Math.round(rec.relevance_score * 100);
         scoreLabel = '匹配 ' + pct + '%';
       }
 
-      /* Duration formatting */
       var durationStr = '';
       if (rec.duration_sec != null && rec.duration_sec > 0) {
         var mins = Math.floor(rec.duration_sec / 60);
@@ -369,7 +343,6 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
         }
       }
 
-      /* Date formatting */
       var dateStr = rec.published_at || '';
       if (dateStr) {
         try {
@@ -380,13 +353,11 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
         } catch(e) {}
       }
 
-      /* Timestamps */
       var hasTimestamps = rec.timestamps && rec.timestamps.length > 0;
 
-      /* Build card HTML */
       var html = '';
 
-      /* Header: title + badge */
+      /* Header */
       html += '<div class="card-header">';
       html += '  <div class="card-title">' + escapeHtml(rec.episode_title || '未命名播客') + '</div>';
       if (scoreLabel) {
@@ -394,23 +365,17 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
       }
       html += '</div>';
 
-      /* Meta: show name + date + duration */
+      /* Meta */
       html += '<div class="card-meta">';
       if (rec.show_title) {
         html += '  <span class="show-name">' + escapeHtml(rec.show_title) + '</span>';
-        if (dateStr || durationStr) {
-          html += '  <span class="sep">·</span>';
-        }
+        if (dateStr || durationStr) html += '  <span class="sep">·</span>';
       }
       if (dateStr) {
         html += '  <span>' + dateStr + '</span>';
-        if (durationStr) {
-          html += '  <span class="sep">·</span>';
-        }
+        if (durationStr) html += '  <span class="sep">·</span>';
       }
-      if (durationStr) {
-        html += '  <span>' + durationStr + '</span>';
-      }
+      if (durationStr) html += '  <span>' + durationStr + '</span>';
       html += '</div>';
 
       /* Summary */
@@ -423,7 +388,7 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
         html += '<div class="card-reason"><strong>推荐理由</strong> · ' + escapeHtml(rec.reason) + '</div>';
       }
 
-      /* Timestamps collapsible */
+      /* Timestamps */
       if (hasTimestamps) {
         var tsId = 'ts-' + idx;
         html += '<div class="timestamps-section">';
@@ -441,11 +406,11 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
         html += '</div>';
       }
 
-      /* Audio player — embedded, preload=none, no autoplay */
+      /* Audio player */
       if (rec.audio_url) {
-        html += '<div class=\"card-audio\">';
-        html += '  <audio controls preload=\"none\" aria-label=\"播客音频播放器 - ' + escapeAttr(rec.episode_title || '') + '\">';
-        html += '    <source src=\"' + escapeAttr(rec.audio_url) + '\" type=\"audio/mpeg\">';
+        html += '<div class="card-audio">';
+        html += '  <audio controls preload="none" aria-label="播客音频播放器 - ' + escapeAttr(rec.episode_title || '') + '">';
+        html += '    <source src="' + escapeAttr(rec.audio_url) + '" type="audio/mpeg">';
         html += '    您的浏览器不支持音频播放';
         html += '  </audio>';
         html += '</div>';
@@ -473,57 +438,33 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
         }
       }
 
-      DOM.cardsList.appendChild(card);
+      targetList.appendChild(card);
     });
-  }
-
-  function showCards(recommendations, processingTime) {
-    DOM.emptyState.hidden = true;
-    DOM.loadingState.hidden = true;
-    DOM.errorState.hidden = true;
-    DOM.cardsContainer.hidden = false;
-    DOM.results.setAttribute('aria-busy', 'false');
-
-    /* Render cards using shared helper */
-    renderCards(recommendations);
-
-    /* Processing time */
-    if (processingTime != null) {
-      var ms = processingTime;
-      var timeStr = ms >= 1000 ? (ms / 1000).toFixed(1) + '秒' : ms + '毫秒';
-      DOM.processingInfo.textContent = '搜索完成 · 耗时 ' + timeStr;
-      DOM.processingInfo.hidden = false;
-    } else {
-      DOM.processingInfo.hidden = true;
-    }
   }
 
   function showLatestCards(recs) {
     DOM.emptyState.hidden = true;
-    DOM.loadingState.hidden = true;
     DOM.errorState.hidden = true;
     DOM.latestHeading.hidden = false;
     DOM.cardsContainer.hidden = false;
+    DOM.sectionDivider.hidden = false;
+    DOM.processingInfo.hidden = true;
     DOM.results.setAttribute('aria-busy', 'false');
-    DOM.processingInfo.hidden = true;  /* Latest mode: no processing time */
-    DOM.btn.disabled = false;
-    DOM.input.disabled = false;
-    renderCards(recs);
+    renderCards(recs, DOM.cardsList);
+    latestWasLoaded = true;
   }
 
+  /* ---- Silent auto-fetch latest (no loading UI) ---- */
   function autoFetchLatest() {
     if (abortController) abortController.abort();
     abortController = new AbortController();
-    latestMode = true;
-    setLoading(true, '正在加载最新播客…');
 
-    /* Timeout: abort fetch if it hangs > 10s */
     var timeoutId = setTimeout(function() {
       if (abortController) {
         abortController.abort();
         abortController = null;
       }
-      showError('加载超时，请检查网络连接后重试');
+      /* Timeout: stay on empty state silently */
     }, 10000);
 
     fetch('https://api.myagent.ccwu.cc/api/latest?limit=5', {
@@ -538,106 +479,109 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     .then(function(data) {
       abortController = null;
       var recs = data.recommendations || [];
-      if (recs.length === 0) {
-        showEmptyState('暂无最新播客', '稍后会有新的播客上线，敬请关注');
-      } else {
+      if (recs.length > 0) {
         showLatestCards(recs);
       }
+      /* Empty result: stay on empty state, no change */
     })
     .catch(function(err) {
       abortController = null;
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') return;
-      showError(err.message || '加载失败，请稍后重试');
+      /* Fetch failed silently — stay on empty state */
     });
   }
 
-  /* ---- API call ---- */
-  function search(topic) {
-    /* Cancel any in-flight request */
-    if (abortController) {
-      abortController.abort();
-    }
+  /* ---- Random fetch ---- */
+  function fetchRandom() {
+    /* Cancel any in-flight random fetch */
+    if (abortController) abortController.abort();
     abortController = new AbortController();
 
-    setLoading(true, '正在搜索推荐…');
-    lastTopic = topic;
+    /* Disable button for loading state */
+    DOM.randomBtn.disabled = true;
+    DOM.randomBtn.textContent = '正在加载…';
+    DOM.results.setAttribute('aria-busy', 'true');
 
-    fetch('https://api.myagent.ccwu.cc/api/recommend', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({topic: topic, top_k: 3}),
+    /* Hide latest section */
+    DOM.latestHeading.hidden = true;
+    DOM.cardsContainer.hidden = true;
+    DOM.sectionDivider.hidden = true;
+
+    /* Hide previous random results and empty/error states */
+    DOM.randomResults.hidden = true;
+    DOM.emptyState.hidden = true;
+    DOM.errorState.hidden = true;
+
+    var timeoutId = setTimeout(function() {
+      if (abortController) {
+        abortController.abort();
+        abortController = null;
+      }
+      /* Timeout: restore previous view silently */
+      DOM.randomBtn.disabled = false;
+      DOM.randomBtn.textContent = '🎲 随便听听';
+      DOM.results.setAttribute('aria-busy', 'false');
+      if (latestWasLoaded) {
+        restoreLatestView();
+      } else {
+        restoreEmptyView();
+      }
+    }, 10000);
+
+    fetch('https://api.myagent.ccwu.cc/api/random', {
+      headers: { 'Accept': 'application/json' },
       signal: abortController.signal,
     })
     .then(function(response) {
-      if (!response.ok) {
-        return response.json().then(function(err) {
-          throw new Error(err.detail || '服务器错误 (' + response.status + ')');
-        }).catch(function(e) {
-          if (e instanceof SyntaxError) {
-            throw new Error('服务器错误 (' + response.status + ')');
-          }
-          throw e;
-        });
-      }
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('服务器错误 (' + response.status + ')');
       return response.json();
     })
     .then(function(data) {
       abortController = null;
+      clearTimeout(timeoutId);
+      DOM.randomBtn.disabled = false;
+      DOM.randomBtn.textContent = '🎲 随便听听';
+
       var recs = data.recommendations || [];
-      var pt = data.processing_time_ms;
-
       if (recs.length === 0) {
-        /* Empty result after search */
-        DOM.emptyState.hidden = false;
-        DOM.loadingState.hidden = true;
-        DOM.errorState.hidden = true;
-        DOM.cardsContainer.hidden = true;
+        /* Empty random results — restore previous view */
+        if (latestWasLoaded) {
+          restoreLatestView();
+        } else {
+          restoreEmptyView();
+        }
+      } else {
+        /* Show random cards (max 4) */
+        var showRecs = recs.slice(0, 4);
+        renderCards(showRecs, DOM.randomCards);
+        DOM.randomResults.hidden = false;
         DOM.results.setAttribute('aria-busy', 'false');
-        DOM.btn.disabled = false;
-        DOM.input.disabled = false;
-
-        /* Update empty state message */
-        var emptyEl = DOM.emptyState.querySelector('h2');
-        var emptyP = DOM.emptyState.querySelector('p');
-        emptyEl.textContent = '未找到相关播客';
-        emptyP.innerHTML = '关于「' + escapeHtml(topic) + '」暂时没有足够匹配的推荐。<br>试试换个关键词？';
-        return;
       }
-
-      showCards(recs, pt);
     })
     .catch(function(err) {
       abortController = null;
-      if (err.name === 'AbortError') {
-        /* Silently ignore aborted requests */
-        return;
+      clearTimeout(timeoutId);
+      DOM.randomBtn.disabled = false;
+      DOM.randomBtn.textContent = '🎲 随便听听';
+      if (err.name === 'AbortError') return;
+      /* On error: restore latest if available, otherwise empty state */
+      if (latestWasLoaded) {
+        restoreLatestView();
+      } else {
+        restoreEmptyView();
       }
-      showError(err.message || '网络错误，请检查连接后重试');
     });
   }
 
   /* ---- Event handlers ---- */
-  DOM.form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    latestMode = false;
-    DOM.latestHeading.hidden = true;
-    var topic = DOM.input.value.trim();
-    if (!topic) {
-      DOM.input.focus();
-      return;
-    }
-    search(topic);
+  DOM.retryBtn.addEventListener('click', function() {
+    autoFetchLatest();
   });
 
-  DOM.retryBtn.addEventListener('click', function() {
-    if (latestMode) {
-      autoFetchLatest();
-    } else if (lastTopic) {
-      search(lastTopic);
-    } else {
-      DOM.input.focus();
-    }
+  DOM.randomBtn.addEventListener('click', function() {
+    fetchRandom();
   });
 
   /* ---- Utility ---- */
@@ -653,15 +597,7 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  /* Input: Enter to submit */
-  DOM.input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      DOM.form.dispatchEvent(new Event('submit'));
-    }
-  });
-
-  /* Init: auto-fetch latest on page load */
+  /* Init: auto-fetch latest silently on page load */
   document.addEventListener('DOMContentLoaded', function() {
     autoFetchLatest();
   });
