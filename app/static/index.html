@@ -112,6 +112,17 @@ header{
 .timestamps-list li:last-child{border-bottom:none}
 .ts-time{font-family:'SF Mono',Monaco,Consolas,'Liberation Mono',monospace;font-size:12px;color:#2563eb;font-weight:500;white-space:nowrap;min-width:48px}
 .ts-label{color:#475569}
+/* ========== Audio player ========== */
+.card-audio{
+  margin-top:12px;width:100%;
+}
+.card-audio audio{
+  display:block;width:100%;height:44px;border-radius:8px;
+  background:#f1f5f9;box-shadow:inset 0 1px 2px rgba(0,0,0,.04);
+}
+.card-audio audio:focus-visible{
+  outline:2px solid #2563eb;outline-offset:2px;border-radius:8px;
+}
 /* ========== Listen button ========== */
 .listen-btn{
   display:inline-flex;align-items:center;gap:6px;margin-top:12px;
@@ -138,7 +149,7 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
 /* ========== Motion reduce ========== */
 @media (prefers-reduced-motion:reduce){
   .spinner-ring{animation-duration:1.5s}
-  .card,.search-input,.search-btn,.listen-btn{transition:none}
+  .card,.search-input,.search-btn,.listen-btn,.card-audio audio{transition:none}
 }
 /* ========== Dark mode ========== */
 @media (prefers-color-scheme:dark){
@@ -160,6 +171,7 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
   .timestamps-list li{color:#cbd5e1;border-bottom-color:#1e293b}
   .ts-time{color:#60a5fa}
   .ts-label{color:#94a3b8}
+  .card-audio audio{background:#334155}
   .listen-btn{background:#334155;color:#f1f5f9}
   .listen-btn:hover{background:#2563eb;color:#fff}
   .card-badge{background:#064e3b;color:#6ee7b7}
@@ -426,6 +438,16 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
           html += '    </li>';
         });
         html += '  </ul>';
+        html += '</div>';
+      }
+
+      /* Audio player — embedded, preload=none, no autoplay */
+      if (rec.audio_url) {
+        html += '<div class=\"card-audio\">';
+        html += '  <audio controls preload=\"none\" aria-label=\"播客音频播放器 - ' + escapeAttr(rec.episode_title || '') + '\">';
+        html += '    <source src=\"' + escapeAttr(rec.audio_url) + '\" type=\"audio/mpeg\">';
+        html += '    您的浏览器不支持音频播放';
+        html += '  </audio>';
         html += '</div>';
       }
 
