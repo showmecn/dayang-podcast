@@ -163,6 +163,78 @@ async def recommend(
 # Latest episodes endpoint (non-AI, no search)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Random episodes endpoint (non-AI, no search, pure DB random query)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/random", response_model=LatestResponse)
+async def random_episodes(
+    limit: int = 4,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Return random episodes with audio_url, preferring last-30-day freshness.
+
+    Pure DB query — no AI, no LLM, no model inference.
+    Response format matches /api/latest exactly (frontend shares rendering).
+    """
+    start = time.monotonic()
+
+    # Single query: prefer recent (≤ 30 days) but random within each tier.
+    # If fewer than `limit` recent episodes exist, older ones fill automatically.
+    sql = text("""
+        SELECT
+            e.id          AS episode_id,
+            e.show_id,
+            e.title       AS episode_title,
+            s.title       AS show_title,
+            e.description,
+            e.show_notes,
+            e.published_at,
+            e.duration_sec,
+            e.audio_url,
+            e.episode_url,
+            s.artwork_url AS show_artwork_url
+        FROM episodes e
+        JOIN shows s ON s.id = e.show_id
+        WHERE e.audio_url IS NOT NULL
+        ORDER BY
+            CASE WHEN e.published_at > NOW() - INTERVAL '30 days' THEN 1 ELSE 2 END,
+            RANDOM()
+        LIMIT :limit
+    """)
+    result = await session.execute(sql, {"limit": limit})
+    rows = result.all()
+
+    recommendations = [
+        EpisodeRecommendation(
+            episode_id=row.episode_id,
+            show_id=row.show_id,
+            episode_title=row.episode_title,
+            show_title=row.show_title,
+            show_artwork_url=row.show_artwork_url,
+            published_at=row.published_at,
+            duration_sec=row.duration_sec,
+            audio_url=row.audio_url,
+            episode_url=row.episode_url,
+            summary=(row.description or "")[:500] if row.description else "No summary available.",
+            reason=f"Random episode from 《{row.show_title}》",
+            timestamps=[],
+        )
+        for row in rows
+    ]
+
+    note: str | None = None
+    if len(recommendations) < limit:
+        note = f"Only {len(recommendations)} episodes with audio available"
+
+    return {
+        "recommendations": [r.model_dump() for r in recommendations],
+        "total": len(recommendations),
+        "note": note,
+    }
+
+
 # Shows to include in /api/latest results — Chinese tech/business podcasts
 LATEST_SHOW_NAMES = [
     "硅谷101",
