@@ -1,0 +1,34 @@
+# Dayang Podcast — Production Deploy
+# Triggered on push to main: rebuilds Docker API on Mac Mini
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    runs-on: self-hosted  # Mac Mini self-hosted runner
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build & restart API
+        run: |
+          docker-compose build api
+          docker-compose up -d api
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 10); do
+            sleep 2
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8088/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check passed"
+              exit 0
+            fi
+          done
+          echo "Health check failed"
+          exit 1
