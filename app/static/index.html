@@ -127,6 +127,14 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 /* ========== Processing time ========== */
 .processing-info{text-align:center;font-size:12px;color:#94a3b8;margin-top:12px}
+/* ========== Latest heading ========== */
+#latestHeading h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 16px;
+}
+
 /* ========== Motion reduce ========== */
 @media (prefers-reduced-motion:reduce){
   .spinner-ring{animation-duration:1.5s}
@@ -160,6 +168,7 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
   .retry-btn{border-color:#3b82f6;color:#60a5fa;background:transparent}
   .retry-btn:hover{background:#1e293b}
   .processing-info{color:#64748b}
+  #latestHeading h2{color:#f1f5f9}
   header{border-color:#1e293b}
   footer{border-color:#1e293b;color:#475569}
   .search-btn{background:#3b82f6}
@@ -235,6 +244,11 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
         <button class="retry-btn" id="retryBtn">重新搜索</button>
       </div>
 
+      <!-- Latest episodes heading (hidden by default, shown after autoFetchLatest) -->
+      <div id="latestHeading" hidden aria-label="最新播客">
+        <h2>最新播客</h2>
+      </div>
+
       <!-- Cards container (hidden by default) -->
       <div id="cardsContainer" hidden aria-label="推荐播客列表">
         <div class="cards" id="cardsList" role="list"></div>
@@ -265,19 +279,25 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     cardsList: document.getElementById('cardsList'),
     processingInfo: document.getElementById('processingInfo'),
     results: document.getElementById('results'),
+    latestHeading: document.getElementById('latestHeading'),
   };
 
   let lastTopic = '';
   let abortController = null;
+  let latestMode = true;
 
   /* ---- State management ---- */
-  function setLoading(loading) {
+  function setLoading(loading, text) {
     DOM.btn.disabled = loading;
     DOM.input.disabled = loading;
     DOM.emptyState.hidden = true;
     DOM.errorState.hidden = true;
     DOM.cardsContainer.hidden = true;
+    DOM.latestHeading.hidden = true;
     DOM.loadingState.hidden = !loading;
+    if (loading && text) {
+      DOM.loadingState.querySelector('.spinner-text').textContent = text;
+    }
     DOM.results.setAttribute('aria-busy', loading ? 'true' : 'false');
   }
 
@@ -285,6 +305,7 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     DOM.emptyState.hidden = true;
     DOM.loadingState.hidden = true;
     DOM.cardsContainer.hidden = true;
+    DOM.latestHeading.hidden = true;
     DOM.errorState.hidden = false;
     DOM.errorMessage.textContent = message || '搜索失败，请稍后重试';
     DOM.results.setAttribute('aria-busy', 'false');
@@ -292,28 +313,34 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     DOM.input.disabled = false;
   }
 
-  function showCards(recommendations, processingTime) {
-    DOM.emptyState.hidden = true;
+  function showEmptyState(title, desc) {
+    DOM.emptyState.hidden = false;
     DOM.loadingState.hidden = true;
     DOM.errorState.hidden = true;
-    DOM.cardsContainer.hidden = false;
+    DOM.cardsContainer.hidden = true;
+    DOM.latestHeading.hidden = true;
     DOM.results.setAttribute('aria-busy', 'false');
+    DOM.btn.disabled = false;
+    DOM.input.disabled = false;
+    DOM.emptyState.querySelector('h2').textContent = title;
+    DOM.emptyState.querySelector('p').textContent = desc;
+  }
 
-    /* Render cards */
+  function renderCards(recs) {
     DOM.cardsList.innerHTML = '';
     DOM.cardsList.setAttribute('role', 'list');
 
-    recommendations.forEach(function(rec, idx) {
+    recs.forEach(function(rec, idx) {
       var card = document.createElement('div');
       card.className = 'card';
       card.setAttribute('role', 'listitem');
       card.setAttribute('aria-posinset', idx + 1);
-      card.setAttribute('aria-setsize', recommendations.length);
+      card.setAttribute('aria-setsize', recs.length);
 
       /* Score badge */
       var scoreLabel = '';
       if (rec.relevance_score != null) {
-        var pct = Math.round(rec.relevance_score);
+        var pct = Math.round(rec.relevance_score * 100);
         scoreLabel = '匹配 ' + pct + '%';
       }
 
@@ -426,6 +453,17 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
 
       DOM.cardsList.appendChild(card);
     });
+  }
+
+  function showCards(recommendations, processingTime) {
+    DOM.emptyState.hidden = true;
+    DOM.loadingState.hidden = true;
+    DOM.errorState.hidden = true;
+    DOM.cardsContainer.hidden = false;
+    DOM.results.setAttribute('aria-busy', 'false');
+
+    /* Render cards using shared helper */
+    renderCards(recommendations);
 
     /* Processing time */
     if (processingTime != null) {
@@ -438,6 +476,47 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     }
   }
 
+  function showLatestCards(recs) {
+    DOM.emptyState.hidden = true;
+    DOM.loadingState.hidden = true;
+    DOM.errorState.hidden = true;
+    DOM.latestHeading.hidden = false;
+    DOM.cardsContainer.hidden = false;
+    DOM.results.setAttribute('aria-busy', 'false');
+    DOM.processingInfo.hidden = true;  /* Latest mode: no processing time */
+    renderCards(recs);
+  }
+
+  function autoFetchLatest() {
+    if (abortController) abortController.abort();
+    abortController = new AbortController();
+    latestMode = true;
+    setLoading(true, '正在加载最新播客…');
+
+    fetch('https://api.myagent.ccwu.cc/api/latest?limit=5', {
+      headers: {'Accept': 'application/json'},
+      signal: abortController.signal,
+    })
+    .then(function(response) {
+      if (!response.ok) throw new Error('服务器错误 (' + response.status + ')');
+      return response.json();
+    })
+    .then(function(data) {
+      abortController = null;
+      var recs = data.recommendations || [];
+      if (recs.length === 0) {
+        showEmptyState('暂无最新播客', '稍后会有新的播客上线，敬请关注');
+      } else {
+        showLatestCards(recs);
+      }
+    })
+    .catch(function(err) {
+      abortController = null;
+      if (err.name === 'AbortError') return;
+      showError(err.message || '加载失败，请稍后重试');
+    });
+  }
+
   /* ---- API call ---- */
   function search(topic) {
     /* Cancel any in-flight request */
@@ -446,7 +525,7 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     }
     abortController = new AbortController();
 
-    setLoading(true);
+    setLoading(true, '正在搜索推荐…');
     lastTopic = topic;
 
     fetch('https://api.myagent.ccwu.cc/api/recommend', {
@@ -506,6 +585,8 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
   /* ---- Event handlers ---- */
   DOM.form.addEventListener('submit', function(e) {
     e.preventDefault();
+    latestMode = false;
+    DOM.latestHeading.hidden = true;
     var topic = DOM.input.value.trim();
     if (!topic) {
       DOM.input.focus();
@@ -515,7 +596,9 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
   });
 
   DOM.retryBtn.addEventListener('click', function() {
-    if (lastTopic) {
+    if (latestMode) {
+      autoFetchLatest();
+    } else if (lastTopic) {
       search(lastTopic);
     } else {
       DOM.input.focus();
@@ -541,6 +624,11 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
       e.preventDefault();
       DOM.form.dispatchEvent(new Event('submit'));
     }
+  });
+
+  /* Init: auto-fetch latest on page load */
+  document.addEventListener('DOMContentLoaded', function() {
+    autoFetchLatest();
   });
 
 })();
