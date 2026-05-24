@@ -506,6 +506,8 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     DOM.cardsContainer.hidden = false;
     DOM.results.setAttribute('aria-busy', 'false');
     DOM.processingInfo.hidden = true;  /* Latest mode: no processing time */
+    DOM.btn.disabled = false;
+    DOM.input.disabled = false;
     renderCards(recs);
   }
 
@@ -515,11 +517,21 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     latestMode = true;
     setLoading(true, '正在加载最新播客…');
 
+    /* Timeout: abort fetch if it hangs > 10s */
+    var timeoutId = setTimeout(function() {
+      if (abortController) {
+        abortController.abort();
+        abortController = null;
+      }
+      showError('加载超时，请检查网络连接后重试');
+    }, 10000);
+
     fetch('https://api.myagent.ccwu.cc/api/latest?limit=5', {
       headers: {'Accept': 'application/json'},
       signal: abortController.signal,
     })
     .then(function(response) {
+      clearTimeout(timeoutId);
       if (!response.ok) throw new Error('服务器错误 (' + response.status + ')');
       return response.json();
     })
@@ -534,6 +546,7 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:#94a3b8;border-top:
     })
     .catch(function(err) {
       abortController = null;
+      clearTimeout(timeoutId);
       if (err.name === 'AbortError') return;
       showError(err.message || '加载失败，请稍后重试');
     });

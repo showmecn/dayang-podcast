@@ -48,7 +48,7 @@ services:
       PODCAST_INDEX_API_KEY: ${PODCAST_INDEX_API_KEY:-}
       PODCAST_INDEX_API_SECRET: ${PODCAST_INDEX_API_SECRET:-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000,https://dayang-podcast-frontend.vercel.app}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost:8088,https://dayang-podcast-frontend.vercel.app}
     depends_on:
       postgres:
         condition: service_healthy

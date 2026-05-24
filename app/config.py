@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     app_name: str = "Dayang Podcast"
     app_version: str = "0.1.0"
     log_level: str = "INFO"
-    cors_origins: str = "http://localhost:5173,http://localhost:3000,https://dayang-podcast-frontend.vercel.app"
+    cors_origins: str = "http://localhost:5173,http://localhost:3000,http://localhost:8088,https://dayang-podcast-frontend.vercel.app"
 
     # Database
     database_url: str = "postgresql+asyncpg://dayang:dayang@localhost:5432/dayang"
