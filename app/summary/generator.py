@@ -58,6 +58,29 @@ def _fallback_summary(title: str, show_title: str, description: str | None) -> d
     }
 
 
+def _build_llm_client() -> tuple[AsyncOpenAI, str]:
+    """Build LLM client based on configured provider.
+
+    Returns:
+        (client, model_name) for either DeepSeek or local Ollama.
+    """
+    if settings.llm_provider == "ollama":
+        return (
+            AsyncOpenAI(
+                api_key="ollama",  # Ollama doesn't need a real key
+                base_url=settings.ollama_base_url,
+            ),
+            settings.ollama_model,
+        )
+    return (
+        AsyncOpenAI(
+            api_key=settings.deepseek_api_key,
+            base_url=settings.deepseek_base_url,
+        ),
+        settings.llm_model,
+    )
+
+
 @retry(
     retry=retry_if_exception_type(Exception),
     wait=wait_exponential(multiplier=2, min=2, max=30),
@@ -91,12 +114,8 @@ async def generate_summary(
         show_notes=notes,
     )
 
-    # Call DeepSeek (OpenAI-compatible API)
-    client = AsyncOpenAI(
-        api_key=settings.deepseek_api_key,
-        base_url=settings.deepseek_base_url,
-    )
-    model = settings.llm_model
+    # Call LLM (DeepSeek or local Ollama via OpenAI-compatible API)
+    client, model = _build_llm_client()
 
     try:
         resp = await client.chat.completions.create(

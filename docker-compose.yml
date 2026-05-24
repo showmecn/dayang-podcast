@@ -37,9 +37,13 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://dayang:dayang@postgres:5432/dayang
       REDIS_URL: redis://redis:6379/0
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      # LLM provider routing (ollama | deepseek)
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
-      LLM_PROVIDER: ${LLM_PROVIDER:-deepseek}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://docker.for.mac.localhost:11434/v1}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      # DeepSeek fallback (kept for rollback)
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
       PODCAST_INDEX_API_KEY: ${PODCAST_INDEX_API_KEY:-}
       PODCAST_INDEX_API_SECRET: ${PODCAST_INDEX_API_SECRET:-}
