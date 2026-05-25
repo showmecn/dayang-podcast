@@ -327,21 +327,38 @@ header{
 .listen-btn:hover{background:var(--listen-hover-bg);color:var(--listen-hover-text);text-decoration:none}
 .listen-btn:focus-visible{outline:2px solid var(--accent-color);outline-offset:2px}
 
-/* ========== Random browse button ========== */
-.random-section{
-  text-align:center;margin:0 0 24px;
-  padding:8px 0 0;
+/* ========== Action row — two buttons side by side ========== */
+.action-row{
+  display:flex;justify-content:center;gap:12px;
+  margin-bottom:24px;flex-wrap:wrap;
 }
-.random-btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  padding:14px 40px;font-size:17px;font-weight:600;border:none;border-radius:12px;
-  background:var(--accent-color);color:var(--bg-color);cursor:pointer;font-family:inherit;
-  transition:background .15s,transform .1s,opacity .15s;min-width:200px;
+.action-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px 28px;font-size:15px;font-weight:600;border:none;border-radius:12px;
+  color:#fff;cursor:pointer;font-family:inherit;
+  min-width:140px;transition:background .15s,opacity .15s,transform .1s;
 }
-.random-btn:hover{background:var(--accent-hover)}
-.random-btn:active{transform:scale(.97)}
-.random-btn:focus-visible{outline:2px solid var(--accent-color);outline-offset:2px}
-.random-btn:disabled{background:var(--disabled-bg);cursor:not-allowed;opacity:.7}
+.action-btn:active{transform:scale(.97)}
+.action-btn:focus-visible{outline:2px solid var(--accent-color);outline-offset:2px}
+.action-btn:disabled{background:var(--disabled-bg);cursor:not-allowed;opacity:.7;transform:none}
+.random-btn{background:var(--accent-color)}
+.random-btn:hover:not(:disabled){background:var(--accent-hover)}
+.latest-btn{background:#059669}
+.latest-btn:hover:not(:disabled){background:#047857}
+
+/* ========== Loading state ========== */
+.loading-state{text-align:center;padding:48px 16px}
+.loading-spinner{display:inline-flex;gap:8px;margin-bottom:12px}
+.loading-dot{
+  width:10px;height:10px;border-radius:50%;background:var(--accent-color);
+  animation:dot-pulse 1.2s ease-in-out infinite;
+}
+.loading-dot:nth-child(2){animation-delay:.4s}
+@keyframes dot-pulse{
+  0%,80%,100%{opacity:.3;transform:scale(.8)}
+  40%{opacity:1;transform:scale(1)}
+}
+.loading-text{font-size:14px;color:var(--text-secondary)}
 
 /* ========== Random results ========== */
 #randomResults{margin-top:8px}
@@ -361,7 +378,8 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
 
 /* ========== Motion reduce ========== */
 @media (prefers-reduced-motion:reduce){
-  *,.card,.listen-btn,.card-audio audio,.random-btn,.retry-btn,.theme-swatch,.brand-icon,.brand{transition:none!important}
+  *,.card,.listen-btn,.card-audio audio,.action-btn,.retry-btn,.theme-swatch,.brand-icon,.brand{transition:none!important}
+  .loading-dot{animation:none;opacity:.6}
 }
 
 /* ========== Responsive ========== */
@@ -375,8 +393,9 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
   .card{padding:16px}
   .card-header{flex-direction:column;gap:4px}
   .card-badge{align-self:flex-start}
-  .random-section{margin:0 0 16px;padding:4px 0 0}
-  .random-btn{padding:12px 32px;font-size:15px;min-width:160px}
+  .action-row{gap:8px}
+  .action-btn{padding:10px 20px;font-size:14px;min-width:120px}
+  .loading-state{padding:36px 16px}
 }
 </style>
 </head>
@@ -414,7 +433,7 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
 <main>
   <section class="results" id="results" aria-label="播客推荐" aria-live="polite" aria-atomic="true">
     <div class="container">
-      <!-- Default: Empty state -->
+      <!-- Default: Welcome state (shown on first visit) -->
       <div class="empty-state" id="emptyState">
         <div class="empty-icon">🎲</div>
         <h2>欢迎来到大洋播客</h2>
@@ -426,19 +445,38 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
         <div class="empty-icon">⚠️</div>
         <h2>加载失败</h2>
         <p id="errorMessage">请稍后重试</p>
-        <button class="retry-btn" id="retryBtn">重新加载</button>
+        <div class="error-detail" id="errorDetail"></div>
+        <button class="retry-btn" id="retryBtn">🔄 重新加载</button>
       </div>
 
-      <!-- 🎲 Random browse button -->
-      <div class="random-section" id="randomSection">
-        <button class="random-btn" id="randomBtn" type="button">🎲 随便听听</button>
+      <!-- Empty state (shown when latest API returns no data) -->
+      <div class="empty-state" id="emptyLatestState" hidden>
+        <div class="empty-icon">📭</div>
+        <h2>暂无最新播客</h2>
+        <p>播客源暂时没有新内容，稍后再来看看</p>
+        <button class="retry-btn" id="emptyLatestRetryBtn">🔄 重新加载</button>
+      </div>
+
+      <!-- Action row: two buttons side by side -->
+      <div class="action-row" id="actionRow">
+        <button class="action-btn random-btn" id="randomBtn" type="button" aria-label="随机发现播客">🎲 随便听听</button>
+        <button class="action-btn latest-btn" id="latestBtn" type="button" aria-label="加载最新播客">📻 最新播客</button>
       </div>
 
       <hr class="section-divider" id="sectionDivider" hidden aria-hidden="true">
 
+      <!-- Loading state (shown on page load and on manual refresh) -->
+      <div class="loading-state" id="loadingState" hidden aria-label="正在加载">
+        <div class="loading-spinner" aria-hidden="true">
+          <span class="loading-dot"></span>
+          <span class="loading-dot"></span>
+        </div>
+        <div class="loading-text" id="loadingText">📻 正在加载最新播客…</div>
+      </div>
+
       <!-- Latest episodes heading -->
       <div id="latestHeading" hidden aria-label="最新播客">
-        <h2>最新播客</h2>
+        <h2>📻 最新播客</h2>
       </div>
 
       <!-- Latest cards container -->
@@ -516,8 +554,11 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
   /* ---- DOM refs ---- */
   var DOM = {
     emptyState: document.getElementById('emptyState'),
+    emptyLatestState: document.getElementById('emptyLatestState'),
+    emptyLatestRetryBtn: document.getElementById('emptyLatestRetryBtn'),
     errorState: document.getElementById('errorState'),
     errorMessage: document.getElementById('errorMessage'),
+    errorDetail: document.getElementById('errorDetail'),
     retryBtn: document.getElementById('retryBtn'),
     cardsContainer: document.getElementById('cardsContainer'),
     cardsList: document.getElementById('cardsList'),
@@ -525,42 +566,88 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
     results: document.getElementById('results'),
     latestHeading: document.getElementById('latestHeading'),
     sectionDivider: document.getElementById('sectionDivider'),
-    randomSection: document.getElementById('randomSection'),
     randomBtn: document.getElementById('randomBtn'),
     randomResults: document.getElementById('randomResults'),
     randomCards: document.getElementById('randomCards'),
+    latestBtn: document.getElementById('latestBtn'),
+    loadingState: document.getElementById('loadingState'),
+    loadingText: document.getElementById('loadingText'),
   };
 
   var abortController = null;
   var latestWasLoaded = false;
 
-  /* ---- State management ---- */
-  function showError(message) {
+  /* ---- Loading state ---- */
+  function showLoading(text) {
+    DOM.loadingState.hidden = false;
+    DOM.loadingText.textContent = text || '📻 正在加载最新播客…';
     DOM.emptyState.hidden = true;
+    DOM.emptyLatestState.hidden = true;
+    DOM.errorState.hidden = true;
+    DOM.cardsContainer.hidden = true;
+    DOM.latestHeading.hidden = true;
+    DOM.sectionDivider.hidden = true;
+    DOM.randomResults.hidden = true;
+  }
+
+  function hideLoading() {
+    DOM.loadingState.hidden = true;
+  }
+
+  /* ---- State management ---- */
+  function showError(message, detail) {
+    hideLoading();
+    DOM.emptyState.hidden = true;
+    DOM.emptyLatestState.hidden = true;
     DOM.cardsContainer.hidden = true;
     DOM.latestHeading.hidden = true;
     DOM.sectionDivider.hidden = true;
     DOM.randomResults.hidden = true;
     DOM.errorState.hidden = false;
     DOM.errorMessage.textContent = message || '加载失败，请稍后重试';
+    DOM.errorDetail.textContent = detail || '';
     DOM.randomBtn.disabled = false;
     DOM.randomBtn.textContent = '🎲 随便听听';
+    DOM.latestBtn.disabled = false;
+    DOM.latestBtn.textContent = '📻 最新播客';
   }
 
   function showEmptyState(title, desc) {
+    hideLoading();
     DOM.emptyState.hidden = false;
+    DOM.emptyLatestState.hidden = true;
     DOM.errorState.hidden = true;
     DOM.cardsContainer.hidden = true;
     DOM.latestHeading.hidden = true;
     DOM.sectionDivider.hidden = true;
     DOM.randomResults.hidden = true;
     DOM.randomBtn.disabled = false;
+    DOM.randomBtn.textContent = '🎲 随便听听';
+    DOM.latestBtn.disabled = false;
+    DOM.latestBtn.textContent = '📻 最新播客';
     DOM.emptyState.querySelector('h2').textContent = title;
     DOM.emptyState.querySelector('p').textContent = desc;
   }
 
-  function restoreLatestView() {
+  function showLatestEmptyState() {
+    hideLoading();
     DOM.emptyState.hidden = true;
+    DOM.emptyLatestState.hidden = false;
+    DOM.errorState.hidden = true;
+    DOM.cardsContainer.hidden = true;
+    DOM.latestHeading.hidden = true;
+    DOM.sectionDivider.hidden = true;
+    DOM.randomResults.hidden = true;
+    DOM.randomBtn.disabled = false;
+    DOM.randomBtn.textContent = '🎲 随便听听';
+    DOM.latestBtn.disabled = false;
+    DOM.latestBtn.textContent = '📻 最新播客';
+  }
+
+  function restoreLatestView() {
+    hideLoading();
+    DOM.emptyState.hidden = true;
+    DOM.emptyLatestState.hidden = true;
     DOM.errorState.hidden = true;
     DOM.randomResults.hidden = true;
     DOM.latestHeading.hidden = false;
@@ -568,11 +655,15 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
     DOM.sectionDivider.hidden = false;
     DOM.randomBtn.disabled = false;
     DOM.randomBtn.textContent = '🎲 随便听听';
+    DOM.latestBtn.disabled = false;
+    DOM.latestBtn.textContent = '📻 最新播客';
     DOM.results.setAttribute('aria-busy', 'false');
   }
 
   function restoreEmptyView() {
+    hideLoading();
     DOM.emptyState.hidden = false;
+    DOM.emptyLatestState.hidden = true;
     DOM.errorState.hidden = true;
     DOM.randomResults.hidden = true;
     DOM.latestHeading.hidden = true;
@@ -580,6 +671,8 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
     DOM.sectionDivider.hidden = true;
     DOM.randomBtn.disabled = false;
     DOM.randomBtn.textContent = '🎲 随便听听';
+    DOM.latestBtn.disabled = false;
+    DOM.latestBtn.textContent = '📻 最新播客';
     DOM.results.setAttribute('aria-busy', 'false');
   }
 
@@ -712,7 +805,9 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
   }
 
   function showLatestCards(recs) {
+    hideLoading();
     DOM.emptyState.hidden = true;
+    DOM.emptyLatestState.hidden = true;
     DOM.errorState.hidden = true;
     DOM.latestHeading.hidden = false;
     DOM.cardsContainer.hidden = false;
@@ -721,19 +816,32 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
     DOM.results.setAttribute('aria-busy', 'false');
     renderCards(recs, DOM.cardsList);
     latestWasLoaded = true;
+    DOM.randomBtn.disabled = false;
+    DOM.randomBtn.textContent = '🎲 随便听听';
+    DOM.latestBtn.disabled = false;
+    DOM.latestBtn.textContent = '📻 最新播客';
   }
 
-  /* ---- Silent auto-fetch latest ---- */
-  function autoFetchLatest() {
+  /* ---- Fetch latest (shared by auto-fetch and manual refresh) ---- */
+  function doFetchLatest() {
     if (abortController) abortController.abort();
     abortController = new AbortController();
+
+    DOM.latestBtn.disabled = true;
+    DOM.latestBtn.textContent = '📻 加载中…';
+    DOM.results.setAttribute('aria-busy', 'true');
+
+    /* Hide random results */
+    DOM.randomResults.hidden = true;
+
+    showLoading('📻 正在加载最新播客…');
 
     var timeoutId = setTimeout(function() {
       if (abortController) {
         abortController.abort();
         abortController = null;
       }
-      /* Timeout: stay on empty state silently */
+      showError('请求超时', '服务器未在 10 秒内响应，请稍后重试');
     }, 10000);
 
     fetch('https://api.myagent.ccwu.cc/api/latest?limit=5', {
@@ -750,14 +858,21 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
       var recs = data.recommendations || [];
       if (recs.length > 0) {
         showLatestCards(recs);
+      } else {
+        showLatestEmptyState();
+        latestWasLoaded = false;
       }
-      /* Empty result: stay on empty state, no change */
     })
     .catch(function(err) {
       abortController = null;
       clearTimeout(timeoutId);
+      DOM.randomBtn.disabled = false;
+      DOM.randomBtn.textContent = '🎲 随便听听';
+      DOM.latestBtn.disabled = false;
+      DOM.latestBtn.textContent = '📻 最新播客';
+      DOM.results.setAttribute('aria-busy', 'false');
       if (err.name === 'AbortError') return;
-      /* Fetch failed silently — stay on empty state */
+      showError('加载失败', err.message);
     });
   }
 
@@ -767,19 +882,23 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
     if (abortController) abortController.abort();
     abortController = new AbortController();
 
-    /* Disable button for loading state */
+    /* Disable only random button (latest stays independent) */
     DOM.randomBtn.disabled = true;
-    DOM.randomBtn.textContent = '正在加载…';
+    DOM.randomBtn.textContent = '🎲 加载中…';
     DOM.results.setAttribute('aria-busy', 'true');
+
+    /* Hide loading state if latest is loading */
+    hideLoading();
 
     /* Hide latest section */
     DOM.latestHeading.hidden = true;
     DOM.cardsContainer.hidden = true;
     DOM.sectionDivider.hidden = true;
 
-    /* Hide previous random results and empty/error states */
+    /* Hide previous random results, empty/error states, and latest empty state */
     DOM.randomResults.hidden = true;
     DOM.emptyState.hidden = true;
+    DOM.emptyLatestState.hidden = true;
     DOM.errorState.hidden = true;
 
     var timeoutId = setTimeout(function() {
@@ -846,11 +965,19 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
 
   /* ---- Event handlers ---- */
   DOM.retryBtn.addEventListener('click', function() {
-    autoFetchLatest();
+    doFetchLatest();
   });
 
   DOM.randomBtn.addEventListener('click', function() {
     fetchRandom();
+  });
+
+  DOM.latestBtn.addEventListener('click', function() {
+    doFetchLatest();
+  });
+
+  DOM.emptyLatestRetryBtn.addEventListener('click', function() {
+    doFetchLatest();
   });
 
   /* ---- Utility ---- */
@@ -866,9 +993,10 @@ footer{text-align:center;padding:24px 0;font-size:12px;color:var(--footer-text);
     return str.replace(/&/g,'&amp;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  /* Init: restore theme + auto-fetch latest */
+  /* Init: restore theme + auto-fetch latest with visible loading */
   document.addEventListener('DOMContentLoaded', function() {
-    autoFetchLatest();
+    showLoading('📻 正在加载最新播客…');
+    doFetchLatest();
   });
 
 })();
